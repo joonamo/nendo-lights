@@ -27,7 +27,7 @@ Metro offset_update = Metro(64);
 void setup() {
   delay(2000);
 
-  FastLED.addLeds<WS2811, DATA_PIN, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
 
   random16_set_seed(analogRead(0));
