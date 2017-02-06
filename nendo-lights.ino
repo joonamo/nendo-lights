@@ -64,7 +64,7 @@ void setup() {
 
   delay(2000);
 
-  FastLED.addLeds<WS2811, DATA_PIN, RGB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(brightness);
 
   random16_set_seed(analogRead(0));
