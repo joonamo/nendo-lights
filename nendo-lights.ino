@@ -83,73 +83,7 @@ void setup() {
 void loop() {
   if (brightness_update.check() == 1)
   {
-    if (indicator_state_red > 0)
-    {
-      --indicator_state_red;
-    }
-    if (indicator_state_green > 0)
-    {
-      --indicator_state_green;
-    }
-    analogWrite(INDICATOR_LIGHT_RED, ease8InOutApprox(indicator_state_red));
-    analogWrite(INDICATOR_LIGHT_GREEN, ease8InOutApprox(indicator_state_green));
-  
-    if (!digitalRead(BRIGHTNESS_PLUS))
-    {
-      indicator_state_green = 255;
-      if (brightness < 255)
-      {
-        ++brightness;
-        FastLED.setBrightness(brightness);
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_green *= error_blink;
-      }
-    }
-    if (!digitalRead(BRIGHTNESS_MINUS))
-    {
-      indicator_state_red = 255;
-      if (brightness > 1)
-      {
-        --brightness;
-        FastLED.setBrightness(brightness);
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_red *= error_blink;
-      }
-    }
-
-    if (!digitalRead(SATURATION_PLUS))
-    {
-      indicator_state_green = 255;
-      if (saturation < 255)
-      {
-        ++saturation;
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_green *= error_blink;
-      }
-    }
-    if (!digitalRead(SATURATION_MINUS))
-    {
-      indicator_state_red = 255;
-      if (saturation > 0)
-      {
-        --saturation;
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_red *= error_blink;
-      }
-    }
-
+    update_control_panel();
   }
 
   if (power == 0)
@@ -223,4 +157,75 @@ void power_switch() {
     FastLED.clear();
     FastLED.show();
   }
+}
+
+void update_control_panel()
+{
+  if (indicator_state_red > 0)
+    {
+      --indicator_state_red;
+    }
+    if (indicator_state_green > 0)
+    {
+      --indicator_state_green;
+    }
+    analogWrite(INDICATOR_LIGHT_RED, ease8InOutApprox(indicator_state_red));
+    analogWrite(INDICATOR_LIGHT_GREEN, ease8InOutApprox(indicator_state_green));
+  
+    if (!digitalRead(BRIGHTNESS_PLUS))
+    {
+      indicator_state_green = 255;
+      if (brightness < 255)
+      {
+        ++brightness;
+        FastLED.setBrightness(brightness);
+      }
+      else
+      {
+        error_blink = 1 - error_blink;
+        indicator_state_green *= error_blink;
+      }
+    }
+    if (!digitalRead(BRIGHTNESS_MINUS))
+    {
+      indicator_state_red = 255;
+      if (brightness > 1)
+      {
+        --brightness;
+        FastLED.setBrightness(brightness);
+      }
+      else
+      {
+        error_blink = 1 - error_blink;
+        indicator_state_red *= error_blink;
+      }
+    }
+
+    if (!digitalRead(SATURATION_PLUS))
+    {
+      indicator_state_green = 255;
+      if (saturation < 255)
+      {
+        ++saturation;
+      }
+      else
+      {
+        error_blink = 1 - error_blink;
+        indicator_state_green *= error_blink;
+      }
+    }
+    if (!digitalRead(SATURATION_MINUS))
+    {
+      indicator_state_red = 255;
+      if (saturation > 0)
+      {
+        --saturation;
+      }
+      else
+      {
+        error_blink = 1 - error_blink;
+        indicator_state_red *= error_blink;
+      }
+    }
+
 }
