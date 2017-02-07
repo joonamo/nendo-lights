@@ -19,7 +19,7 @@
 #define EEPROM_BRIGHTNESS_LOC 1
 #define EEPROM_SATURATION_LOC 2
 
-uint8_t brightness = 64;
+uint8_t brightness = 32;
 uint8_t saturation = 255;
 
 volatile uint8_t power = 1;
@@ -35,11 +35,16 @@ CRGB leds[NUM_LEDS];
 int highlight_index = 0;
 CRGB base_color;
 
-int8_t bg_index;
+uint8_t bg_index = 0;
+int8_t bg_dir = 1;
+
+#define BG_MAX 120
+#define BG_OFFSET 120 
 
 int offset_index = 0;
-int offset_width = 30 * highlight_aa;
-int offset_scale = 90;
+int offset_width = 10 * highlight_aa;
+int offset_scale = 20;
+int offset_dir = 1;
 
 Metro highlight_update = Metro(33);
 Metro bg_update = Metro(1234);
@@ -68,7 +73,7 @@ void setup() {
   FastLED.setBrightness(brightness);
 
   random16_set_seed(analogRead(0));
-  bg_index = random8();
+  // bg_index = random8();
 
   highlight_update.reset();
   bg_update.reset();
@@ -94,7 +99,12 @@ void loop() {
 
   if (bg_update.check() == 1)
   {
-    ++bg_index;
+    if (bg_index >= BG_MAX)
+      bg_dir = -1;
+    else if (bg_index <= 0)
+      bg_dir = 1;
+    bg_index += bg_dir;
+
   }
   if (highlight_update.check() == 1)
   {
@@ -105,6 +115,12 @@ void loop() {
     --offset_index;
     if (offset_index < 0)
       offset_index = NUM_LEDS * highlight_aa;
+
+    if (offset_scale >= BG_MAX * 2)
+      offset_dir = -1;
+    else if (offset_scale <= 0)
+      offset_dir = 1;
+    offset_scale += offset_dir;
   }
 
   // fill_solid(leds, NUM_LEDS, );
@@ -127,7 +143,7 @@ void loop() {
 
     offset_dist = /*ease8InOutApprox*/(255 - 255 * offset_dist / offset_width);
     leds[i] = CHSV(
-      bg_index + scale8(offset_scale, offset_dist), 
+      bg_index + BG_OFFSET + ((100 - offset_scale) * offset_dist / 255), 
       saturation, 
       128 + (saturation / 2));
 
@@ -203,7 +219,6 @@ void update_control_panel()
 
     if (!digitalRead(SATURATION_PLUS))
     {
-      indicator_state_green = 255;
       if (saturation < 255)
       {
         ++saturation;
@@ -216,7 +231,6 @@ void update_control_panel()
     }
     if (!digitalRead(SATURATION_MINUS))
     {
-      indicator_state_red = 255;
       if (saturation > 0)
       {
         --saturation;
