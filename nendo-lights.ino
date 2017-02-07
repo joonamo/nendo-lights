@@ -75,6 +75,9 @@ void setup() {
   offset_update.reset();
   brightness_update.reset();
 
+  fill_solid(leds, NUM_LEDS, CRGB::Red);
+  FastLED.show();
+
 }
 
 void loop() {
@@ -97,6 +100,7 @@ void loop() {
       if (brightness < 255)
       {
         ++brightness;
+        FastLED.setBrightness(brightness);
       }
       else
       {
@@ -110,6 +114,7 @@ void loop() {
       if (brightness > 1)
       {
         --brightness;
+        FastLED.setBrightness(brightness);
       }
       else
       {
@@ -190,9 +195,9 @@ void loop() {
     leds[i] = CHSV(
       bg_index + scale8(offset_scale, offset_dist), 
       saturation, 
-      scale8(brightness, 128 + (saturation / 2)));
+      128 + (saturation / 2));
 
-    nblend(leds[i], CHSV(0, 0, brightness), 
+    nblend(leds[i], CHSV(0, 0, 255), 
       /*ease8InOutApprox*/(255 - 255 * highlight_dist / highlight_width));
   }
 
