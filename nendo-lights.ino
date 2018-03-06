@@ -1,10 +1,14 @@
-
 #include "FastLED.h"
 #include "Metro.h"
 #include <EEPROM.h>
+#include <new>
 
-#define NUM_LEDS 60
-#define DATA_PIN 17
+#include "NendoEffect.h"
+#include "ColorSpinEffect.h"
+#include "SingleColorEffect.h"
+
+static const uint8_t num_leds = 60;
+#define DATA_PIN 13
 
 #define POWER_BUTTON 4
 #define BRIGHTNESS_MINUS 0
@@ -22,44 +26,70 @@
 uint8_t brightness = 32;
 uint8_t saturation = 255;
 
-volatile uint8_t power = 1;
-volatile uint8_t indicator_state_green = 255;
-volatile uint8_t indicator_state_red = 0;
-volatile uint8_t error_blink = 0;
+CRGB leds[num_leds];
 
-int highlight_aa = 10;
-int highlight_width = 10 * highlight_aa;
+Metro debug_print_timer(1000);
+Metro effect_cycler_timer(5000);
 
-CRGB leds[NUM_LEDS];
+struct EffectContainer {
+  EffectContainer() { 
+    m_current_effect_ptr = new(&m_current_effect) NendoEffect(leds, num_leds); 
+  };
+  ~EffectContainer() { m_current_effect.EndPlay(); };
 
-int highlight_index = 0;
-CRGB base_color;
+  uint8_t m_current_effect_idx = -1;
+  NendoEffect* m_current_effect_ptr = nullptr;
+  union {
+    NendoEffect m_current_effect;
+    ColorSpinEffect m_colorspin;
+    SingleColorEffect m_singlecolor;
+  };
+};
+EffectContainer e;
 
-uint8_t bg_index = 0;
-int8_t bg_dir = 1;
-
-#define BG_MAX 120
-#define BG_OFFSET 120 
-
-int offset_index = 0;
-int offset_width = 10 * highlight_aa;
-int offset_scale = 20;
-int offset_dir = 1;
-
-Metro highlight_update = Metro(33);
-Metro bg_update = Metro(1234);
-Metro offset_update = Metro(64);
-Metro brightness_update = Metro(16);
+void change_effect(int idx)
+{
+  if (idx != e.m_current_effect_idx)
+  {
+    e.m_current_effect.EndPlay();
+    switch (idx)
+    {
+      case 0:
+      {
+        new(&e.m_colorspin) ColorSpinEffect(leds, num_leds, 33, 1234, 64);
+        break;
+      }
+      case 1:
+      {
+        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::White);
+        break;
+      }
+      case 2:
+      {
+        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::DeepPink);
+        break;
+      }
+      case 3:
+      {
+        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::SeaGreen);
+        break;
+      }
+      default:
+      break;
+    }
+    e.m_current_effect_idx = idx;
+  }
+}
 
 void setup() {
-  pinMode(POWER_BUTTON, INPUT_PULLUP);
+  // pinMode(POWER_BUTTON, INPUT_PULLUP);
   pinMode(BRIGHTNESS_MINUS, INPUT_PULLUP);
   pinMode(BRIGHTNESS_PLUS, INPUT_PULLUP);
   pinMode(SATURATION_MINUS, INPUT_PULLUP);
   pinMode(SATURATION_PLUS, INPUT_PULLUP);
 
   analogWrite(INDICATOR_LIGHT_GREEN, 255);
-  attachInterrupt(POWER_BUTTON, power_switch, FALLING);
+  //attachInterrupt(POWER_BUTTON, power_switch, FALLING);
 
   if (EEPROM.read(0) == EEPROM_MAGICVALUE)
   {
@@ -69,177 +99,128 @@ void setup() {
 
   delay(2000);
 
-  FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setBrightness(brightness);
+  FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, num_leds);
+  FastLED.setBrightness(128);
 
   random16_set_seed(analogRead(0));
+  change_effect(0);
   // bg_index = random8();
 
-  highlight_update.reset();
-  bg_update.reset();
-  offset_update.reset();
-  brightness_update.reset();
-
-  fill_solid(leds, NUM_LEDS, CRGB::Red);
+  fill_solid(leds, num_leds, CRGB::White);
   FastLED.show();
 
+  Serial.begin(9600);
 }
 
 void loop() {
-  if (brightness_update.check() == 1)
+  // if (brightness_update.check() == 1)
+  // {
+  //   update_control_panel();
+  // }
+
+  // if (power == 0)
+  // {
+  //   delay(100);
+  //   return;
+  // }
+  if (debug_print_timer.check())
   {
-    update_control_panel();
+    Serial.println(e.m_current_effect_ptr->GetUid());
   }
 
-  if (power == 0)
+
+  if (e.m_current_effect_ptr->Update()) // gotta use the vtable here
   {
-    delay(100);
-    return;
-  }
-
-  if (bg_update.check() == 1)
-  {
-    if (bg_index >= BG_MAX)
-      bg_dir = -1;
-    else if (bg_index <= 0)
-      bg_dir = 1;
-    bg_index += bg_dir;
-
-  }
-  if (highlight_update.check() == 1)
-  {
-    highlight_index = (highlight_index + 1) % (NUM_LEDS * highlight_aa);
-  }
-  if (offset_update.check() == 1)
-  {
-    --offset_index;
-    if (offset_index < 0)
-      offset_index = NUM_LEDS * highlight_aa;
-
-    if (offset_scale >= BG_MAX * 2)
-      offset_dir = -1;
-    else if (offset_scale <= 0)
-      offset_dir = 1;
-    offset_scale += offset_dir;
-  }
-
-  // fill_solid(leds, NUM_LEDS, );
-  for (int i = 0; i < NUM_LEDS; i += 1)
-  {
-    int highlight_dist = min(min(
-      abs((highlight_index) - ((i - NUM_LEDS) * highlight_aa)),
-      abs((highlight_index) - ((i + NUM_LEDS) * highlight_aa))),
-      abs((highlight_index) - (i * highlight_aa)));
-    
-    if (highlight_dist > highlight_width)
-      highlight_dist = highlight_width;
-
-    int offset_dist = min(min(
-      abs((offset_index) - ((i - NUM_LEDS) * highlight_aa)),
-      abs((offset_index) - ((i + NUM_LEDS) * highlight_aa))),
-      abs((offset_index) - (i * highlight_aa)));
-    if (offset_dist > offset_width)
-      offset_dist = offset_width;
-
-    offset_dist = /*ease8InOutApprox*/(255 - 255 * offset_dist / offset_width);
-    leds[i] = CHSV(
-      bg_index + BG_OFFSET + ((100 - offset_scale) * offset_dist / 255), 
-      saturation, 
-      128 + (saturation / 2));
-
-    nblend(leds[i], CHSV(0, 0, 255), 
-      /*ease8InOutApprox*/(255 - 255 * highlight_dist / highlight_width));
-  }
-
-  FastLED.show();
-}
-
-void power_switch() {
-  power = 1 - power;
-  if (power == 1)
-  {
-    indicator_state_green = 255;
-    indicator_state_red = 0;
-  } 
-  else
-  {
-    indicator_state_green = 0;
-    indicator_state_red = 255;
-
-    EEPROM.update(0, EEPROM_MAGICVALUE);
-    EEPROM.update(EEPROM_BRIGHTNESS_LOC, brightness);
-    EEPROM.update(EEPROM_SATURATION_LOC, saturation);
-
-    FastLED.clear();
     FastLED.show();
   }
 }
 
-void update_control_panel()
-{
-  if (indicator_state_red > 0)
-    {
-      --indicator_state_red;
-    }
-    if (indicator_state_green > 0)
-    {
-      --indicator_state_green;
-    }
-    analogWrite(INDICATOR_LIGHT_RED, ease8InOutApprox(indicator_state_red));
-    analogWrite(INDICATOR_LIGHT_GREEN, ease8InOutApprox(indicator_state_green));
+// void power_switch() {
+//   power = 1 - power;
+//   if (power == 1)
+//   {
+//     indicator_state_green = 255;
+//     indicator_state_red = 0;
+//   } 
+//   else
+//   {
+//     indicator_state_green = 0;
+//     indicator_state_red = 255;
+
+//     EEPROM.update(0, EEPROM_MAGICVALUE);
+//     EEPROM.update(EEPROM_BRIGHTNESS_LOC, brightness);
+//     EEPROM.update(EEPROM_SATURATION_LOC, saturation);
+
+//     FastLED.clear();
+//     FastLED.show();
+//   }
+// }
+
+// void update_control_panel()
+// {
+//   if (indicator_state_red > 0)
+//     {
+//       --indicator_state_red;
+//     }
+//     if (indicator_state_green > 0)
+//     {
+//       --indicator_state_green;
+//     }
+//     analogWrite(INDICATOR_LIGHT_RED, ease8InOutApprox(indicator_state_red));
+//     analogWrite(INDICATOR_LIGHT_GREEN, ease8InOutApprox(indicator_state_green));
   
-    if (!digitalRead(BRIGHTNESS_PLUS))
-    {
-      indicator_state_green = 255;
-      if (brightness < 255)
-      {
-        ++brightness;
-        FastLED.setBrightness(brightness);
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_green *= error_blink;
-      }
-    }
-    if (!digitalRead(BRIGHTNESS_MINUS))
-    {
-      indicator_state_red = 255;
-      if (brightness > 1)
-      {
-        --brightness;
-        FastLED.setBrightness(brightness);
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_red *= error_blink;
-      }
-    }
+//     if (!digitalRead(BRIGHTNESS_PLUS))
+//     {
+//       indicator_state_green = 255;
+//       if (brightness < 255)
+//       {
+//         ++brightness;
+//         FastLED.setBrightness(brightness);
+//       }
+//       else
+//       {
+//         error_blink = 1 - error_blink;
+//         indicator_state_green *= error_blink;
+//       }
+//     }
+//     if (!digitalRead(BRIGHTNESS_MINUS))
+//     {
+//       indicator_state_red = 255;
+//       if (brightness > 1)
+//       {
+//         --brightness;
+//         FastLED.setBrightness(brightness);
+//       }
+//       else
+//       {
+//         error_blink = 1 - error_blink;
+//         indicator_state_red *= error_blink;
+//       }
+//     }
 
-    if (!digitalRead(SATURATION_PLUS))
-    {
-      if (saturation < 255)
-      {
-        ++saturation;
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_green *= error_blink;
-      }
-    }
-    if (!digitalRead(SATURATION_MINUS))
-    {
-      if (saturation > 0)
-      {
-        --saturation;
-      }
-      else
-      {
-        error_blink = 1 - error_blink;
-        indicator_state_red *= error_blink;
-      }
-    }
+//     if (!digitalRead(SATURATION_PLUS))
+//     {
+//       if (saturation < 255)
+//       {
+//         ++saturation;
+//       }
+//       else
+//       {
+//         error_blink = 1 - error_blink;
+//         indicator_state_green *= error_blink;
+//       }
+//     }
+//     if (!digitalRead(SATURATION_MINUS))
+//     {
+//       if (saturation > 0)
+//       {
+//         --saturation;
+//       }
+//       else
+//       {
+//         error_blink = 1 - error_blink;
+//         indicator_state_red *= error_blink;
+//       }
+//     }
 
-}
+// }

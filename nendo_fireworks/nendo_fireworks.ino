@@ -4,7 +4,7 @@
 #include <EEPROM.h>
 
 #define NUM_LEDS 60
-#define DATA_PIN 6
+#define DATA_PIN 17
 
 #define POWER_BUTTON 4
 #define BRIGHTNESS_MINUS 0
