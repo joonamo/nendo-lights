@@ -9,7 +9,8 @@ public:
     CRGB* leds, const uint8_t num_leds, 
     unsigned long highlight_delay,
     unsigned long bg_delay, 
-    unsigned long offset_delay);
+    unsigned long offset_delay,
+    uint8_t bg_index);
 
   virtual ~ColorSpinEffect() {};
 

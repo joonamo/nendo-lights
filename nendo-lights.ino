@@ -54,41 +54,38 @@ EffectContainer e;
 
 void change_effect(int idx)
 {
-  if (idx != e.m_current_effect_idx)
+  e.m_current_effect.EndPlay();
+  switch (idx)
   {
-    e.m_current_effect.EndPlay();
-    switch (idx)
+    case 0:
     {
-      case 0:
-      {
-        new(&e.m_colorspin) ColorSpinEffect(leds, num_leds, 33, 1234, 64);
-        break;
-      }
-      case 1:
-      {
-        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::White);
-        break;
-      }
-      case 2:
-      {
-        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::DeepPink);
-        break;
-      }
-      case 3:
-      {
-        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::SeaGreen);
-        break;
-      }
-      case 4:
-      {
-        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::Gold);
-        break;
-      }
-      default:
+      new(&e.m_colorspin) ColorSpinEffect(leds, num_leds, 33, 1234, 64, millis());
       break;
     }
-    e.m_current_effect_idx = idx;
+    case 1:
+    {
+      new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::White);
+      break;
+    }
+    case 2:
+    {
+      new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::DeepPink);
+      break;
+    }
+    case 3:
+    {
+      new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CHSV(millis(), 255, 255));
+      break;
+    }
+    case 4:
+    {
+      new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::White);
+      break;
+    }
+    default:
+    break;
   }
+  e.m_current_effect_idx = idx;
 }
 
 void setup() {
@@ -112,7 +109,7 @@ void setup() {
   irrecv.enableIRIn();
 
   FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, num_leds);
-  FastLED.setBrightness(128);
+  FastLED.setBrightness(255);
 
   random16_set_seed(analogRead(0));
   change_effect(0);

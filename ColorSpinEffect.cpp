@@ -7,11 +7,13 @@
 ColorSpinEffect::ColorSpinEffect(CRGB* leds, const uint8_t num_leds, 
   unsigned long highlight_delay, 
   unsigned long bg_delay, 
-  unsigned long offset_delay)
+  unsigned long offset_delay,
+  uint8_t bg_index)
   : NendoEffect(leds, num_leds) 
   , m_highlight_update(highlight_delay)
   , m_bg_update(bg_delay)
   , m_offset_update(offset_delay)
+  , m_bg_index(bg_index)
 {
   m_highlight_width = 10 * m_highlight_aa;
   m_offset_width = 10 * m_highlight_aa;
