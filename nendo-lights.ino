@@ -2,6 +2,7 @@
 #include "Metro.h"
 #include <EEPROM.h>
 #include <new>
+#include <IRremote.h>
 
 #include "NendoEffect.h"
 #include "ColorSpinEffect.h"
@@ -9,6 +10,7 @@
 
 static const uint8_t num_leds = 60;
 #define DATA_PIN 13
+#define IR_RECV_PIN 12
 
 #define POWER_BUTTON 4
 #define BRIGHTNESS_MINUS 0
@@ -29,7 +31,10 @@ uint8_t saturation = 255;
 CRGB leds[num_leds];
 
 Metro debug_print_timer(1000);
-Metro effect_cycler_timer(5000);
+
+// ir stuff
+IRrecv irrecv(IR_RECV_PIN);
+decode_results ir_results;
 
 struct EffectContainer {
   EffectContainer() { 
@@ -74,6 +79,11 @@ void change_effect(int idx)
         new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::SeaGreen);
         break;
       }
+      case 4:
+      {
+        new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::Gold);
+        break;
+      }
       default:
       break;
     }
@@ -99,6 +109,8 @@ void setup() {
 
   delay(2000);
 
+  irrecv.enableIRIn();
+
   FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, num_leds);
   FastLED.setBrightness(128);
 
@@ -123,11 +135,42 @@ void loop() {
   //   delay(100);
   //   return;
   // }
+  if (irrecv.decode(&ir_results)) {
+    if (ir_results.value < 0xFFFFFFFF)
+    {
+      switch (ir_results.value)
+      {
+        case 0x1FE40BF:
+        change_effect(0);
+        break;
+
+        case 0x1FE609F:
+        change_effect(1);
+        break;
+
+        case 0x1FE10EF:
+        change_effect(2);
+        break;
+
+        case 0x1FE50AF:
+        change_effect(3);
+        break;
+
+        case 0x1FEB04F:
+        change_effect(4);
+        break;
+
+        default:
+        break;
+      }
+    }
+    irrecv.resume();
+  }
+
   if (debug_print_timer.check())
   {
     Serial.println(e.m_current_effect_ptr->GetUid());
   }
-
 
   if (e.m_current_effect_ptr->Update()) // gotta use the vtable here
   {
