@@ -7,26 +7,14 @@
 #include "NendoEffect.h"
 #include "ColorSpinEffect.h"
 #include "SingleColorEffect.h"
+#include "FireworksEffect.h"
 
 static const uint8_t num_leds = 60;
 #define DATA_PIN 13
 #define IR_RECV_PIN 12
 
-#define POWER_BUTTON 4
-#define BRIGHTNESS_MINUS 0
-#define BRIGHTNESS_PLUS 1
-#define SATURATION_MINUS 2
-#define SATURATION_PLUS 3
-
-#define INDICATOR_LIGHT_GREEN 20
-#define INDICATOR_LIGHT_RED 16
-
-#define EEPROM_MAGICVALUE 42
-#define EEPROM_BRIGHTNESS_LOC 1
-#define EEPROM_SATURATION_LOC 2
-
-uint8_t brightness = 32;
-uint8_t saturation = 255;
+#define EEPROM_MAGICVALUE 39
+#define EEPROM_EFFECT_IDX 1
 
 CRGB leds[num_leds];
 
@@ -48,63 +36,50 @@ struct EffectContainer {
     NendoEffect m_current_effect;
     ColorSpinEffect m_colorspin;
     SingleColorEffect m_singlecolor;
+    FireworksEffect m_fireworks;
   };
 };
 EffectContainer e;
 
-void change_effect(int idx)
+void change_effect(uint8_t idx)
 {
   e.m_current_effect.EndPlay();
   switch (idx)
   {
     case 0:
     {
-      new(&e.m_colorspin) ColorSpinEffect(leds, num_leds, 33, 1234, 64, millis());
+      new(&e.m_colorspin) ColorSpinEffect(leds, num_leds, 33, 1234, 64, millis() + 128);
       break;
     }
     case 1:
     {
-      new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::White);
+      new(&e.m_fireworks) FireworksEffect(leds, num_leds);
       break;
     }
     case 2:
-    {
-      new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::DeepPink);
-      break;
-    }
     case 3:
     {
       new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CHSV(millis(), 255, 255));
       break;
     }
+    default:
     case 4:
     {
       new(&e.m_singlecolor) SingleColorEffect(leds, num_leds, CRGB::White);
       break;
     }
-    default:
-    break;
   }
   e.m_current_effect_idx = idx;
+  EEPROM.update(EEPROM_EFFECT_IDX, idx);
+  EEPROM.update(0, EEPROM_MAGICVALUE);
 }
 
 void setup() {
-  // pinMode(POWER_BUTTON, INPUT_PULLUP);
-  pinMode(BRIGHTNESS_MINUS, INPUT_PULLUP);
-  pinMode(BRIGHTNESS_PLUS, INPUT_PULLUP);
-  pinMode(SATURATION_MINUS, INPUT_PULLUP);
-  pinMode(SATURATION_PLUS, INPUT_PULLUP);
-
-  analogWrite(INDICATOR_LIGHT_GREEN, 255);
-  //attachInterrupt(POWER_BUTTON, power_switch, FALLING);
-
+  uint8_t effect_idx = 0;
   if (EEPROM.read(0) == EEPROM_MAGICVALUE)
   {
-    EEPROM.get(EEPROM_BRIGHTNESS_LOC, brightness);
-    EEPROM.get(EEPROM_SATURATION_LOC, saturation);
+    EEPROM.get(EEPROM_EFFECT_IDX, effect_idx);
   }
-
-  delay(2000);
 
   irrecv.enableIRIn();
 
@@ -112,7 +87,7 @@ void setup() {
   FastLED.setBrightness(255);
 
   random16_set_seed(analogRead(0));
-  change_effect(0);
+  change_effect(effect_idx);
   // bg_index = random8();
 
   fill_solid(leds, num_leds, CRGB::White);
@@ -167,11 +142,14 @@ void loop() {
   if (debug_print_timer.check())
   {
     Serial.println(e.m_current_effect_ptr->GetUid());
+    Serial.println(EEPROM.read(0));
+    Serial.println(EEPROM.read(1));
   }
 
-  if (e.m_current_effect_ptr->Update()) // gotta use the vtable here
+  if (e.m_current_effect_ptr->Update() )
   {
     FastLED.show();
+    delay(1); // Give tiny bit of time for IR to receive
   }
 }
 
