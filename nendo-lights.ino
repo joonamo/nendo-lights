@@ -10,8 +10,8 @@
 #include "FireworksEffect.h"
 
 static const uint8_t num_leds = 60;
-#define DATA_PIN 13
-#define IR_RECV_PIN 12
+#define DATA_PIN 17
+#define IR_RECV_PIN 14
 
 #define EEPROM_MAGICVALUE 39
 #define EEPROM_EFFECT_IDX 1
