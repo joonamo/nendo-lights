@@ -10,6 +10,7 @@
 #include "FireworksEffect.h"
 
 static const uint8_t num_leds = 60;
+static const uint8_t brightness = 255;
 #define DATA_PIN 17
 #define IR_RECV_PIN 14
 
@@ -84,11 +85,10 @@ void setup() {
   irrecv.enableIRIn();
 
   FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, num_leds);
-  FastLED.setBrightness(255);
+  FastLED.setBrightness(brightness);
 
   random16_set_seed(analogRead(0));
   change_effect(effect_idx);
-  // bg_index = random8();
 
   fill_solid(leds, num_leds, CRGB::White);
   FastLED.show();
@@ -97,16 +97,6 @@ void setup() {
 }
 
 void loop() {
-  // if (brightness_update.check() == 1)
-  // {
-  //   update_control_panel();
-  // }
-
-  // if (power == 0)
-  // {
-  //   delay(100);
-  //   return;
-  // }
   if (irrecv.decode(&ir_results)) {
     if (ir_results.value < 0xFFFFFFFF)
     {
@@ -152,93 +142,3 @@ void loop() {
     delay(1); // Give tiny bit of time for IR to receive
   }
 }
-
-// void power_switch() {
-//   power = 1 - power;
-//   if (power == 1)
-//   {
-//     indicator_state_green = 255;
-//     indicator_state_red = 0;
-//   } 
-//   else
-//   {
-//     indicator_state_green = 0;
-//     indicator_state_red = 255;
-
-//     EEPROM.update(0, EEPROM_MAGICVALUE);
-//     EEPROM.update(EEPROM_BRIGHTNESS_LOC, brightness);
-//     EEPROM.update(EEPROM_SATURATION_LOC, saturation);
-
-//     FastLED.clear();
-//     FastLED.show();
-//   }
-// }
-
-// void update_control_panel()
-// {
-//   if (indicator_state_red > 0)
-//     {
-//       --indicator_state_red;
-//     }
-//     if (indicator_state_green > 0)
-//     {
-//       --indicator_state_green;
-//     }
-//     analogWrite(INDICATOR_LIGHT_RED, ease8InOutApprox(indicator_state_red));
-//     analogWrite(INDICATOR_LIGHT_GREEN, ease8InOutApprox(indicator_state_green));
-  
-//     if (!digitalRead(BRIGHTNESS_PLUS))
-//     {
-//       indicator_state_green = 255;
-//       if (brightness < 255)
-//       {
-//         ++brightness;
-//         FastLED.setBrightness(brightness);
-//       }
-//       else
-//       {
-//         error_blink = 1 - error_blink;
-//         indicator_state_green *= error_blink;
-//       }
-//     }
-//     if (!digitalRead(BRIGHTNESS_MINUS))
-//     {
-//       indicator_state_red = 255;
-//       if (brightness > 1)
-//       {
-//         --brightness;
-//         FastLED.setBrightness(brightness);
-//       }
-//       else
-//       {
-//         error_blink = 1 - error_blink;
-//         indicator_state_red *= error_blink;
-//       }
-//     }
-
-//     if (!digitalRead(SATURATION_PLUS))
-//     {
-//       if (saturation < 255)
-//       {
-//         ++saturation;
-//       }
-//       else
-//       {
-//         error_blink = 1 - error_blink;
-//         indicator_state_green *= error_blink;
-//       }
-//     }
-//     if (!digitalRead(SATURATION_MINUS))
-//     {
-//       if (saturation > 0)
-//       {
-//         --saturation;
-//       }
-//       else
-//       {
-//         error_blink = 1 - error_blink;
-//         indicator_state_red *= error_blink;
-//       }
-//     }
-
-// }
