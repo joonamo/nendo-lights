@@ -3,10 +3,10 @@
 
 FireworksEffect::FireworksEffect(CRGB* leds, const uint8_t num_leds)
   : NendoEffect(leds, num_leds)
-  , fireworks_update(50)
-  , new_fireworks_update(16)
-  , brightness_update(16)
-  , bg_update(100)
+  , fireworks_update(50, 1)
+  , new_fireworks_update(16, 1)
+  , brightness_update(16, 1)
+  , bg_update(100, 1)
 {
   for (uint8_t i = 0; i < MAX_FIREWORKS; ++i)
   {

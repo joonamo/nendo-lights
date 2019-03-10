@@ -87,6 +87,9 @@ void setup() {
   FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, num_leds);
   FastLED.setBrightness(brightness);
 
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+
   random16_set_seed(analogRead(0));
   change_effect(effect_idx);
 
